@@ -517,8 +517,7 @@ public class MainActivity extends AppCompatActivity {
                     "\n\nPlease check your internet connection and try again.");
         });
     }
-    
-    // Helper method to display classification results in a popup dialog
+      // Helper method to display classification results in a popup dialog
     private void displayClassificationResults(String jsonResponse) {
         try {
             Gson gson = new Gson();
@@ -529,6 +528,7 @@ public class MainActivity extends AppCompatActivity {
             
             String title = "🍽️ Food Classification Results";
             String message = "";
+            final double CONFIDENCE_THRESHOLD = 0.7; // Minimum confidence level
             
             // Handle different response formats based on Roboflow model type
             if (response.has("predictions")) {
@@ -536,22 +536,31 @@ public class MainActivity extends AppCompatActivity {
                 JsonArray predictions = response.getAsJsonArray("predictions");
                 if (predictions.size() > 0) {
                     StringBuilder resultsBuilder = new StringBuilder();
-                    resultsBuilder.append("Detected food items:\n\n");
+                    boolean hasHighConfidenceResults = false;
                     
-                    // Show top 3 predictions
-                    int maxPredictions = Math.min(3, predictions.size());
-                    for (int i = 0; i < maxPredictions; i++) {
+                    // Filter predictions by confidence threshold
+                    for (int i = 0; i < predictions.size(); i++) {
                         JsonObject prediction = predictions.get(i).getAsJsonObject();
-                        String className = prediction.get("class").getAsString();
                         double confidence = prediction.get("confidence").getAsDouble();
                         
-                        resultsBuilder.append(String.format("%d. %s\n", (i + 1), 
-                                formatFoodName(className)));
-                        resultsBuilder.append(String.format("   Confidence: %.1f%%\n\n", 
-                                confidence * 100));
+                        if (confidence >= CONFIDENCE_THRESHOLD) {
+                            if (!hasHighConfidenceResults) {
+                                resultsBuilder.append("Detected food items:\n\n");
+                                hasHighConfidenceResults = true;
+                            }
+                            
+                            String className = prediction.get("class").getAsString();
+                            resultsBuilder.append(String.format("• %s\n", formatFoodName(className)));
+                            resultsBuilder.append(String.format("   Confidence: %.1f%%\n\n", confidence * 100));
+                        }
                     }
                     
-                    message = resultsBuilder.toString();
+                    if (hasHighConfidenceResults) {
+                        message = resultsBuilder.toString();
+                    } else {
+                        message = "No confident food detection found.\n\nThe model couldn't identify the food with sufficient confidence (70%+).\n\nTry taking another photo with:\n• Better lighting\n• Clearer view of the food\n• Different angle";
+                        title = "⚠️ Low Confidence Detection";
+                    }
                 } else {
                     message = "No food detected in the image.\n\nTry taking another photo with better lighting or a different angle.";
                     title = "❌ No Food Detected";
@@ -561,13 +570,15 @@ public class MainActivity extends AppCompatActivity {
                 String topClass = response.get("top").getAsString();
                 double confidence = response.get("confidence").getAsDouble();
                 
-                message = String.format("Classified as: %s\n\nConfidence: %.1f%%", 
-                        formatFoodName(topClass), confidence * 100);
-                        
-                if (confidence < 0.5) {
-                    message += "\n\n⚠️ Low confidence result. Consider retaking the photo.";
+                if (confidence >= CONFIDENCE_THRESHOLD) {
+                    message = String.format("Classified as: %s\n\nConfidence: %.1f%%", 
+                            formatFoodName(topClass), confidence * 100);
+                } else {
+                    message = String.format("Low confidence detection: %s (%.1f%%)\n\nThe model couldn't identify the food with sufficient confidence (70%+).\n\nTry taking another photo with better lighting or a clearer view.", 
+                            formatFoodName(topClass), confidence * 100);
+                    title = "⚠️ Low Confidence Detection";
                 }
-            } else if (response.has("predicted_classes")) {
+            }else if (response.has("predicted_classes")) {
                 // Another possible classification format
                 JsonArray predictedClasses = response.getAsJsonArray("predicted_classes");
                 if (predictedClasses.size() > 0) {
