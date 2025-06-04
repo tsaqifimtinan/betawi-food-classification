@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CAMERA_PERMISSION = 200;
     private static final String ROBOFLOW_API_URL = "https://detect.roboflow.com";
     private static final String ROBOFLOW_API_KEY = "dTilJcee6cDC3qrVQKFH";
-    private static final String MODEL_ENDPOINT = "traditional-cake-8jfpu/1"; 
+    private static final String MODEL_ENDPOINT = "/traditional-cake-8jfpu/1"; 
     private static final MediaType MEDIA_TYPE_JPEG = MediaType.parse("image/jpeg");
     
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
