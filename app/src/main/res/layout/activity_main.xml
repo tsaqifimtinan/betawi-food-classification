@@ -5,69 +5,198 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/gradient_background"
     tools:context=".MainActivity">
 
-    <!-- Camera Preview -->
-    <TextureView
-        android:id="@+id/texture_view"
+    <!-- Header with App Title -->
+    <LinearLayout
+        android:id="@+id/header_container"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/header_background"
+        android:padding="20dp"
+        android:elevation="8dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/button_container"
-        app:layout_constraintHeight_percent="0.8"/>
-
-    <!-- Displayed captured image -->
-    <ImageView
-        android:id="@+id/image_view_thumbnail"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_margin="16dp"
-        android:scaleType="centerCrop"
-        android:visibility="gone"
-        android:elevation="5dp"
-        app:layout_constraintBottom_toBottomOf="@+id/texture_view"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Container for buttons at the bottom -->
-    <LinearLayout
-        android:id="@+id/button_container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginBottom="16dp">
-
-        <!-- Take Picture Button -->
-        <Button
-            android:id="@+id/button_take_picture"
+        app:layout_constraintEnd_toEndOf="parent">        <TextView
+            android:id="@+id/app_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Take Picture"
-            android:layout_marginEnd="8dp"/>
-
-        <!-- Classify Button -->
-        <Button
-            android:id="@+id/button_upload"
+            android:text="🍰 Njajan"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:layout_gravity="center"/>        <TextView
+            android:id="@+id/app_subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Classify Food"
-            android:enabled="false"
-            android:layout_marginStart="8dp"/>
+            android:text="Discover Traditional Betawi Snacks!"
+            android:textSize="14sp"
+            android:textColor="#E8F5E8"
+            android:layout_gravity="center"
+            android:layout_marginTop="4dp"/>
 
     </LinearLayout>
-    
-    <!-- Progress indicator for classification -->
-    <ProgressBar
-        android:id="@+id/upload_progress"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@id/button_container"
+
+    <!-- Camera Preview Frame -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/camera_frame"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="16dp"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="12dp"
+        app:cardBackgroundColor="#FFFFFF"
+        app:layout_constraintTop_toBottomOf="@+id/header_container"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="8dp"/>
+        app:layout_constraintBottom_toTopOf="@+id/controls_container"
+        app:layout_constraintHeight_percent="0.6">
+
+        <TextureView
+            android:id="@+id/texture_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="8dp"/>
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- Captured Image Thumbnail with stylish frame -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/thumbnail_frame"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:layout_margin="20dp"
+        android:visibility="gone"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="16dp"
+        app:cardBackgroundColor="#FFFFFF"
+        app:layout_constraintBottom_toBottomOf="@+id/camera_frame"
+        app:layout_constraintEnd_toEndOf="@+id/camera_frame">
+
+        <ImageView
+            android:id="@+id/image_view_thumbnail"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="8dp"
+            android:scaleType="centerCrop"/>
+
+        <!-- Success checkmark overlay -->
+        <ImageView
+            android:id="@+id/success_checkmark"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="8dp"
+            android:src="@drawable/ic_check_circle"
+            android:visibility="gone"
+            android:background="@drawable/circle_green_background"/>
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- Controls Container with gradient background -->
+    <LinearLayout
+        android:id="@+id/controls_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/controls_background"
+        android:padding="24dp"
+        android:elevation="6dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Progress indicator with text -->
+        <LinearLayout
+            android:id="@+id/progress_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            android:layout_marginBottom="16dp">
+
+            <ProgressBar
+                android:id="@+id/upload_progress"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:indeterminateTint="#FF6B35"/>
+
+            <TextView
+                android:id="@+id/progress_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Analyzing food..."
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:layout_marginStart="12dp"
+                android:layout_gravity="center_vertical"/>
+
+        </LinearLayout>
+
+        <!-- Button Container -->
+        <LinearLayout
+            android:id="@+id/button_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <!-- Take Picture Button -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="12dp"
+                app:cardCornerRadius="25dp"
+                app:cardElevation="8dp"
+                app:cardBackgroundColor="#FF6B35">
+
+                <Button
+                    android:id="@+id/button_take_picture"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📸 Take Picture"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:background="@android:color/transparent"
+                    android:paddingHorizontal="24dp"
+                    android:paddingVertical="16dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"/>
+
+            </androidx.cardview.widget.CardView>
+
+            <!-- Classify Button -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                app:cardCornerRadius="25dp"
+                app:cardElevation="8dp"
+                app:cardBackgroundColor="#4ECDC4">
+
+                <Button
+                    android:id="@+id/button_upload"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔍 Classify Food"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:background="@android:color/transparent"
+                    android:paddingHorizontal="24dp"
+                    android:paddingVertical="16dp"
+                    android:enabled="false"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"/>
+
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

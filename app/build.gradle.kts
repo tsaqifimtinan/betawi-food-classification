@@ -37,6 +37,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
+    implementation("androidx.cardview:cardview:1.0.0")
     
     // Network libraries for uploading images
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

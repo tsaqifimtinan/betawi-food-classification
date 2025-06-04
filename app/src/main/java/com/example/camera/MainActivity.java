@@ -30,13 +30,16 @@ import android.view.TextureView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
@@ -81,13 +84,15 @@ public class MainActivity extends AppCompatActivity {
         ORIENTATIONS.append(Surface.ROTATION_90, 0);
         ORIENTATIONS.append(Surface.ROTATION_180, 270);
         ORIENTATIONS.append(Surface.ROTATION_270, 180);
-    }
-
-    private TextureView textureView;
+    }    private TextureView textureView;
     private ImageView imageView;
     private Button takePictureButton;
     private Button classifyButton;
     private ProgressBar classifyProgressBar;
+    private TextView progressText;
+    private LinearLayout progressContainer;
+    private ImageView successCheckmark;
+    private CardView thumbnailFrame;
     
     private String cameraId;
     private CameraDevice cameraDevice;
@@ -110,16 +115,20 @@ public class MainActivity extends AppCompatActivity {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
-        });
-
-        textureView = findViewById(R.id.texture_view);
+        });        textureView = findViewById(R.id.texture_view);
         imageView = findViewById(R.id.image_view_thumbnail);
         takePictureButton = findViewById(R.id.button_take_picture);
         classifyButton = findViewById(R.id.button_upload);
         classifyProgressBar = findViewById(R.id.upload_progress);
-        
-        // Initialize OkHttpClient for network requests
+        progressText = findViewById(R.id.progress_text);
+        progressContainer = findViewById(R.id.progress_container);
+        successCheckmark = findViewById(R.id.success_checkmark);
+        thumbnailFrame = findViewById(R.id.thumbnail_frame);
+          // Initialize OkHttpClient for network requests
         client = new OkHttpClient();
+        
+        // Set initial button states
+        classifyButton.setAlpha(0.5f); // Disabled appearance
         
         assert textureView != null;
         textureView.setSurfaceTextureListener(textureListener);
@@ -341,12 +350,13 @@ public class MainActivity extends AppCompatActivity {
                         byte[] bytes = new byte[buffer.capacity()];
                         buffer.get(bytes);
                         captureBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                        
-                        runOnUiThread(() -> {
+                          runOnUiThread(() -> {
                             imageView.setImageBitmap(captureBitmap);
-                            imageView.setVisibility(View.VISIBLE);
+                            thumbnailFrame.setVisibility(View.VISIBLE);
+                            successCheckmark.setVisibility(View.VISIBLE);
                             // Enable classify button now that we have an image
                             classifyButton.setEnabled(true);
+                            classifyButton.setAlpha(1.0f);
                             Toast.makeText(MainActivity.this, "Picture captured!", Toast.LENGTH_SHORT).show();
                         });
                     } finally {
@@ -392,10 +402,11 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "No image to upload", Toast.LENGTH_SHORT).show();
             return;
         }
-        
-        // Show progress
-        classifyProgressBar.setVisibility(View.VISIBLE);
+          // Show progress
+        progressContainer.setVisibility(View.VISIBLE);
+        progressText.setText("📤 Uploading image...");
         classifyButton.setEnabled(false);
+        classifyButton.setAlpha(0.5f);
         
         // Convert bitmap to byte array
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -467,15 +478,16 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
                 handleClassificationError(e.getMessage());
             }
-            
-            @Override
+              @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 final String responseBody = response.body().string();
                 runOnUiThread(() -> {
-                    classifyProgressBar.setVisibility(View.GONE);
+                    progressContainer.setVisibility(View.GONE);
                     classifyButton.setEnabled(true);
+                    classifyButton.setAlpha(1.0f);
                     
                     if (response.isSuccessful()) {
+                        progressText.setText("🎉 Analysis complete!");
                         // Parse and display the classification results
                         displayClassificationResults(responseBody);
                     } else {
@@ -485,8 +497,10 @@ public class MainActivity extends AppCompatActivity {
                         if (response.code() == 400 || response.code() == 415) {
                             Log.d(TAG, "Trying base64 upload as fallback");
                             runOnUiThread(() -> {
-                                classifyProgressBar.setVisibility(View.VISIBLE);
+                                progressContainer.setVisibility(View.VISIBLE);
+                                progressText.setText("🔄 Retrying with different format...");
                                 classifyButton.setEnabled(false);
+                                classifyButton.setAlpha(0.5f);
                             });
                             
                             // Convert bitmap to bytes again for base64 upload
@@ -504,12 +518,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-    
-    // Helper method to handle classification errors
+      // Helper method to handle classification errors
     private void handleClassificationError(String errorMessage) {
         runOnUiThread(() -> {
-            classifyProgressBar.setVisibility(View.GONE);
+            progressContainer.setVisibility(View.GONE);
             classifyButton.setEnabled(true);
+            classifyButton.setAlpha(1.0f);
             
             // Show error in popup dialog instead of toast
             showClassificationDialog("❌ Classification Failed", 
@@ -639,12 +653,13 @@ public class MainActivity extends AppCompatActivity {
     private void showClassificationDialog(String title, String message) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(title)
-                .setMessage(message)
-                .setPositiveButton("Take Another Photo", new DialogInterface.OnClickListener() {
+                .setMessage(message)                .setPositiveButton("Take Another Photo", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         // Reset the image view and prepare for another photo
-                        imageView.setVisibility(View.GONE);
+                        thumbnailFrame.setVisibility(View.GONE);
+                        successCheckmark.setVisibility(View.GONE);
                         classifyButton.setEnabled(false);
+                        classifyButton.setAlpha(0.5f);
                         captureBitmap = null;
                         dialog.dismiss();
                     }
