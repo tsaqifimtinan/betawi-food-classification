@@ -3,6 +3,7 @@ package com.example.camera;
 import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -19,9 +20,12 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
@@ -36,6 +40,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -73,9 +81,10 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
     private static final int REQUEST_CAMERA_PERMISSION = 200;
+    private static final int REQUEST_READ_EXTERNAL_STORAGE = 201;
     private static final String ROBOFLOW_API_URL = "https://detect.roboflow.com";
     private static final String ROBOFLOW_API_KEY = "dTilJcee6cDC3qrVQKFH";
-    private static final String MODEL_ENDPOINT = "/traditional-cake-8jfpu/2"; 
+    private static final String MODEL_ENDPOINT = "/traditional-cake-8jfpu/3"; 
     private static final MediaType MEDIA_TYPE_JPEG = MediaType.parse("image/jpeg");
     
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
@@ -84,9 +93,12 @@ public class MainActivity extends AppCompatActivity {
         ORIENTATIONS.append(Surface.ROTATION_90, 0);
         ORIENTATIONS.append(Surface.ROTATION_180, 270);
         ORIENTATIONS.append(Surface.ROTATION_270, 180);
-    }    private TextureView textureView;
+    }
+    
+    private TextureView textureView;
     private ImageView imageView;
     private Button takePictureButton;
+    private Button selectGalleryButton;
     private Button classifyButton;
     private ProgressBar classifyProgressBar;
     private TextView progressText;
@@ -106,6 +118,9 @@ public class MainActivity extends AppCompatActivity {
     private Bitmap captureBitmap;
     private OkHttpClient client;
 
+    // ActivityResultLauncher for gallery selection
+    private ActivityResultLauncher<Intent> galleryLauncher;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -115,17 +130,25 @@ public class MainActivity extends AppCompatActivity {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
-        });        textureView = findViewById(R.id.texture_view);
+        });
+        
+        // Initialize views
+        textureView = findViewById(R.id.texture_view);
         imageView = findViewById(R.id.image_view_thumbnail);
         takePictureButton = findViewById(R.id.button_take_picture);
+        selectGalleryButton = findViewById(R.id.button_select_gallery);
         classifyButton = findViewById(R.id.button_upload);
         classifyProgressBar = findViewById(R.id.upload_progress);
         progressText = findViewById(R.id.progress_text);
         progressContainer = findViewById(R.id.progress_container);
         successCheckmark = findViewById(R.id.success_checkmark);
         thumbnailFrame = findViewById(R.id.thumbnail_frame);
-          // Initialize OkHttpClient for network requests
+        
+        // Initialize OkHttpClient for network requests
         client = new OkHttpClient();
+        
+        // Initialize gallery launcher
+        initializeGalleryLauncher();
         
         // Set initial button states
         classifyButton.setAlpha(0.5f); // Disabled appearance
@@ -134,8 +157,50 @@ public class MainActivity extends AppCompatActivity {
         textureView.setSurfaceTextureListener(textureListener);
         
         takePictureButton.setOnClickListener(view -> takePicture());
-        
+        selectGalleryButton.setOnClickListener(view -> selectFromGallery());
         classifyButton.setOnClickListener(view -> uploadImage());
+    }
+
+    // Register the ActivityResultLauncher for gallery selection
+    private void registerGalleryLauncher() {
+        galleryLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            new ActivityResultCallback<ActivityResult>() {
+                @Override
+                public void onActivityResult(ActivityResult result) {
+                    if (result.getResultCode() == RESULT_OK) {
+                        Intent data = result.getData();
+                        if (data != null) {
+                            Uri imageUri = data.getData();
+                            // Handle the selected image
+                            handleImageSelected(imageUri);
+                        }
+                    }
+                }
+            });
+    }
+
+    // Handle the image selected from gallery
+    private void handleImageSelected(Uri imageUri) {
+        try {
+            // Load the image as bitmap
+            Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
+            captureBitmap = bitmap;
+            
+            // Display the selected image in the thumbnail
+            imageView.setImageBitmap(bitmap);
+            thumbnailFrame.setVisibility(View.VISIBLE);
+            successCheckmark.setVisibility(View.VISIBLE);
+            
+            // Enable classify button now that we have an image
+            classifyButton.setEnabled(true);
+            classifyButton.setAlpha(1.0f);
+            
+            Toast.makeText(this, "Image selected from gallery!", Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to load image from gallery", Toast.LENGTH_SHORT).show();
+        }
     }
 
     TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
@@ -282,29 +347,114 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 openCamera();
             }
+        } else if (requestCode == REQUEST_READ_EXTERNAL_STORAGE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openGallery();
+            } else {
+                Toast.makeText(this, "Storage permission denied. Cannot access gallery.", Toast.LENGTH_LONG).show();
+            }
         }
     }
     
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Log.e(TAG, "onResume");
-        startBackgroundThread();
-        if (textureView.isAvailable()) {
-            openCamera();
+    // Initialize the gallery launcher
+    private void initializeGalleryLauncher() {
+        galleryLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                new ActivityResultCallback<ActivityResult>() {
+                    @Override
+                    public void onActivityResult(ActivityResult result) {
+                        if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                            Uri selectedImageUri = result.getData().getData();
+                            if (selectedImageUri != null) {
+                                try {
+                                    // Convert URI to Bitmap
+                                    Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), selectedImageUri);
+                                    
+                                    // Resize bitmap if it's too large to prevent memory issues
+                                    captureBitmap = resizeBitmap(bitmap, 1024, 1024);
+                                    
+                                    // Update UI
+                                    runOnUiThread(() -> {
+                                        imageView.setImageBitmap(captureBitmap);
+                                        thumbnailFrame.setVisibility(View.VISIBLE);
+                                        successCheckmark.setVisibility(View.VISIBLE);
+                                        
+                                        // Enable classify button
+                                        classifyButton.setEnabled(true);
+                                        classifyButton.setAlpha(1.0f);
+                                        
+                                        Toast.makeText(MainActivity.this, "Image selected from gallery!", Toast.LENGTH_SHORT).show();
+                                    });
+                                    
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error loading image from gallery", e);
+                                    Toast.makeText(MainActivity.this, "Error loading image from gallery", Toast.LENGTH_LONG).show();
+                                }
+                            }
+                        }
+                    }
+                }
+        );
+    }
+    
+    // Method to select image from gallery
+    private void selectFromGallery() {
+        // Check for storage permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ uses READ_MEDIA_IMAGES
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) 
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, 
+                        new String[]{Manifest.permission.READ_MEDIA_IMAGES}, 
+                        REQUEST_READ_EXTERNAL_STORAGE);
+                return;
+            }
         } else {
-            textureView.setSurfaceTextureListener(textureListener);
+            // Older versions use READ_EXTERNAL_STORAGE
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) 
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, 
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 
+                        REQUEST_READ_EXTERNAL_STORAGE);
+                return;
+            }
         }
+        
+        openGallery();
     }
     
-    @Override
-    protected void onPause() {
-        Log.e(TAG, "onPause");
-        closeCamera();
-        stopBackgroundThread();
-        super.onPause();
+    // Open the gallery
+    private void openGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.setType("image/*");
+        
+        // Add MIME types to filter only image files
+        String[] mimeTypes = {"image/jpeg", "image/png", "image/jpg"};
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+        
+        galleryLauncher.launch(intent);
     }
-
+    
+    // Helper method to resize bitmap to prevent memory issues
+    private Bitmap resizeBitmap(Bitmap bitmap, int maxWidth, int maxHeight) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        
+        // Calculate the scaling factor
+        float scaleWidth = ((float) maxWidth) / width;
+        float scaleHeight = ((float) maxHeight) / height;
+        float scale = Math.min(scaleWidth, scaleHeight);
+        
+        // Only resize if the image is larger than the max dimensions
+        if (scale < 1.0f) {
+            int newWidth = Math.round(width * scale);
+            int newHeight = Math.round(height * scale);
+            return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true);
+        }
+        
+        return bitmap;
+    }
+    
     private void takePicture() {
         if (null == cameraDevice) {
             Log.e(TAG, "cameraDevice is null");
@@ -648,19 +798,15 @@ public class MainActivity extends AppCompatActivity {
         
         return result.toString().trim();
     }
-    
-    // Method to show classification results in a popup dialog
+      // Method to show classification results in a popup dialog
     private void showClassificationDialog(String title, String message) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(title)
-                .setMessage(message)                .setPositiveButton("Take Another Photo", new DialogInterface.OnClickListener() {
+                .setMessage(message)
+                .setPositiveButton("Select Another Image", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         // Reset the image view and prepare for another photo
-                        thumbnailFrame.setVisibility(View.GONE);
-                        successCheckmark.setVisibility(View.GONE);
-                        classifyButton.setEnabled(false);
-                        classifyButton.setAlpha(0.5f);
-                        captureBitmap = null;
+                        resetImageSelection();
                         dialog.dismiss();
                     }
                 })
@@ -673,6 +819,16 @@ public class MainActivity extends AppCompatActivity {
         
         AlertDialog dialog = builder.create();
         dialog.show();
+    }
+    
+    // Helper method to reset image selection
+    private void resetImageSelection() {
+        thumbnailFrame.setVisibility(View.GONE);
+        successCheckmark.setVisibility(View.GONE);
+        classifyButton.setEnabled(false);
+        classifyButton.setAlpha(0.5f);
+        captureBitmap = null;
+        imageView.setImageBitmap(null);
     }
     
     // Helper method to choose optimal preview size

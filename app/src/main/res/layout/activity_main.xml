@@ -134,46 +134,78 @@
                 android:layout_marginStart="12dp"
                 android:layout_gravity="center_vertical"/>
 
-        </LinearLayout>
-
-        <!-- Button Container -->
+        </LinearLayout>        <!-- Button Container -->
         <LinearLayout
             android:id="@+id/button_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:gravity="center">
 
-            <!-- Take Picture Button -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="wrap_content"
+            <!-- Top row buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
-                app:cardCornerRadius="25dp"
-                app:cardElevation="8dp"
-                app:cardBackgroundColor="#FF6B35">
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="12dp">
 
-                <Button
-                    android:id="@+id/button_take_picture"
+                <!-- Take Picture Button -->
+                <androidx.cardview.widget.CardView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="📸 Take Picture"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:background="@android:color/transparent"
-                    android:paddingHorizontal="24dp"
-                    android:paddingVertical="16dp"
-                    android:minWidth="0dp"
-                    android:minHeight="0dp"/>
+                    android:layout_marginEnd="8dp"
+                    app:cardCornerRadius="25dp"
+                    app:cardElevation="8dp"
+                    app:cardBackgroundColor="#FF6B35">
 
-            </androidx.cardview.widget.CardView>
+                    <Button
+                        android:id="@+id/button_take_picture"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📸 Take Picture"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:background="@android:color/transparent"
+                        android:paddingHorizontal="20dp"
+                        android:paddingVertical="14dp"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"/>
+
+                </androidx.cardview.widget.CardView>
+
+                <!-- Select from Gallery Button -->
+                <androidx.cardview.widget.CardView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    app:cardCornerRadius="25dp"
+                    app:cardElevation="8dp"
+                    app:cardBackgroundColor="#9B59B6">
+
+                    <Button
+                        android:id="@+id/button_select_gallery"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🖼️ Gallery"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:background="@android:color/transparent"
+                        android:paddingHorizontal="20dp"
+                        android:paddingVertical="14dp"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"/>
+
+                </androidx.cardview.widget.CardView>
+
+            </LinearLayout>
 
             <!-- Classify Button -->
             <androidx.cardview.widget.CardView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
                 app:cardCornerRadius="25dp"
                 app:cardElevation="8dp"
                 app:cardBackgroundColor="#4ECDC4">
