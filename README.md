@@ -19,15 +19,6 @@ This Android app allows you to take photos with your device camera and classify 
 
 ## Configuration
 
-### Roboflow API Setup
-The app is configured to use Roboflow's food classification API. Key configuration constants in `MainActivity.java`:
-
-```java
-private static final String ROBOFLOW_API_URL = "https://detect.roboflow.com";
-private static final String ROBOFLOW_API_KEY = "dTilJcee6cDC3qrVQKFH";
-private static final String MODEL_ENDPOINT = "traditional-cake-8jfpu/1";
-```
-
 ### How to Use Your Own Model
 1. Create or find a food classification model on [Roboflow](https://roboflow.com)
 2. Deploy your model and get the API endpoint
