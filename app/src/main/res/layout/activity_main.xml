@@ -23,7 +23,7 @@
             android:id="@+id/app_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="🍰 Njajan"
+            android:text="🍰 KueKite"
             android:textSize="24sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
